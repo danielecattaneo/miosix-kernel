@@ -522,7 +522,11 @@ mkdir gdb-obj
 cd gdb-obj
 
 # CXX=$HOSTCXX to avoid having to distribute libstdc++.dll on windows
-CXX=$HOSTCXX ../$GDB/configure \
+# CFLAGS=... to fix an issue (currently only on macos) where configure fails
+# to find elf-bfd.h because it is missing an include to <string.h>.
+CXX=$HOSTCXX \
+CFLAGS="$CFLAGS -Wno-error=implicit-function-declaration" \
+../$GDB/configure \
 	--build=$BUILD \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
@@ -539,6 +543,7 @@ CXX=$HOSTCXX ../$GDB/configure \
 # Specify a dummy MAKEINFO binary to work around an issue in the gdb makefiles
 # where compilation fails if MAKEINFO is not installed.
 # https://sourceware.org/bugzilla/show_bug.cgi?id=14678
+CFLAGS="$CFLAGS -Wno-error=implicit-function-declaration" \
 make all MAKEINFO=/usr/bin/true $PARALLEL 2>../log/m.txt || quit ":: Error compiling gdb"
 
 $SUDO make install MAKEINFO=/usr/bin/true DESTDIR=$DESTDIR 2>../log/n.txt || quit ":: Error installing gdb"
