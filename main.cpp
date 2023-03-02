@@ -1,4 +1,3 @@
-
 #include <cstdio>
 #include "miosix.h"
 #include "tusb.h"
@@ -9,16 +8,19 @@ using namespace miosix;
 int main()
 {
     iprintf("Hello world, write your application here\n");
-    usb::id::getPin().alternateFunction(10);
-    usb::dm::getPin().alternateFunction(10);
-    usb::dp::getPin().alternateFunction(10);
-    usb::id::getPin().mode(Mode::ALTERNATE);
-    usb::dm::getPin().mode(Mode::ALTERNATE);
-    usb::dp::getPin().mode(Mode::ALTERNATE_OD);
+    usb::id::alternateFunction(10);
+    usb::dm::alternateFunction(10);
+    usb::dp::alternateFunction(10);
+    usb::id::mode(Mode::ALTERNATE);
+    usb::dm::mode(Mode::ALTERNATE);
+    usb::dp::mode(Mode::ALTERNATE_OD);
+    usb::vbus::mode(Mode::INPUT);
     RCC->AHB2ENR |= RCC_AHB2ENR_OTGFSEN;
-    USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_NOVBUSSENS;
-    USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSBSEN;
-    USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSASEN;
+    //USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_NOVBUSSENS;
+    //USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSBSEN;
+    //USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSASEN;
+    USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_NOVBUSSENS;
+    USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBUSBSEN;
     bool r = tusb_init();
     iprintf("tusb_init = %d\n", r);
     while (1)
