@@ -24,29 +24,37 @@
  * This file is part of the TinyUSB stack.
  */
 
-#ifndef _TUSB_OSAL_NONE_H_
-#define _TUSB_OSAL_NONE_H_
+#ifndef _TUSB_OS_CUSTOM_H_
+#define _TUSB_OS_CUSTOM_H_
+
+#include <pthread.h>
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
+
+// Redefining C++ Thread APIs here using mangled names to make them accessible
+// to C code.
+
+// void miosix::Thread::yield();
+extern void _ZN6miosix6Thread5yieldEv(void);
+// void miosix::Thread::sleep(unsigned int);
+extern void _ZN6miosix6Thread5sleepEj(unsigned int ms);
 
 //--------------------------------------------------------------------+
 // TASK API
 //--------------------------------------------------------------------+
-
-#if CFG_TUH_ENABLED
-// currently only needed/available in host mode
-void osal_task_delay(uint32_t msec);
-#endif
+TU_ATTR_ALWAYS_INLINE static inline void osal_task_delay(uint32_t msec)
+{
+    _ZN6miosix6Thread5sleepEj(msec);
+}
 
 //--------------------------------------------------------------------+
 // Binary Semaphore API
 //--------------------------------------------------------------------+
-typedef struct
-{
+typedef struct {
   volatile uint16_t count;
-}osal_semaphore_def_t;
+} osal_semaphore_def_t;
 
 typedef osal_semaphore_def_t* osal_semaphore_t;
 
@@ -68,7 +76,7 @@ TU_ATTR_ALWAYS_INLINE static inline bool osal_semaphore_wait (osal_semaphore_t s
 {
   (void) msec;
 
-  while (sem_hdl->count == 0) { }
+  while (sem_hdl->count == 0) { _ZN6miosix6Thread5yieldEv(); }
   sem_hdl->count--;
 
   return true;
@@ -83,36 +91,24 @@ TU_ATTR_ALWAYS_INLINE static inline void osal_semaphore_reset(osal_semaphore_t s
 // MUTEX API
 // Within tinyusb, mutex is never used in ISR context
 //--------------------------------------------------------------------+
-typedef osal_semaphore_def_t osal_mutex_def_t;
-typedef osal_semaphore_t osal_mutex_t;
+typedef pthread_mutex_t osal_mutex_def_t;
+typedef pthread_mutex_t *osal_mutex_t;
 
-#if OSAL_MUTEX_REQUIRED
-// Note: multiple cores MCUs usually do provide IPC API for mutex
-// or we can use std atomic function
-
-TU_ATTR_ALWAYS_INLINE static inline osal_mutex_t osal_mutex_create(osal_mutex_def_t* mdef)
+TU_ATTR_ALWAYS_INLINE static inline osal_mutex_t osal_mutex_create(osal_mutex_def_t *mdef)
 {
-  mdef->count = 1;
-  return mdef;
+    pthread_mutex_init(mdef, NULL);
+    return mdef;
 }
 
-TU_ATTR_ALWAYS_INLINE static inline bool osal_mutex_lock (osal_mutex_t mutex_hdl, uint32_t msec)
+TU_ATTR_ALWAYS_INLINE static inline bool osal_mutex_lock(osal_mutex_t mutex_hdl, uint32_t msec)
 {
-  return osal_semaphore_wait(mutex_hdl, msec);
+    return pthread_mutex_lock(mutex_hdl) == 0;
 }
 
 TU_ATTR_ALWAYS_INLINE static inline bool osal_mutex_unlock(osal_mutex_t mutex_hdl)
 {
-  return osal_semaphore_post(mutex_hdl, false);
+    return pthread_mutex_unlock(mutex_hdl) == 0;
 }
-
-#else
-
-#define osal_mutex_create(_mdef)          (NULL)
-#define osal_mutex_lock(_mutex_hdl, _ms)  (true)
-#define osal_mutex_unlock(_mutex_hdl)     (true)
-
-#endif
 
 //--------------------------------------------------------------------+
 // QUEUE API
@@ -191,7 +187,7 @@ TU_ATTR_ALWAYS_INLINE static inline bool osal_queue_empty(osal_queue_t qhdl)
 }
 
 #ifdef __cplusplus
- }
+}
 #endif
 
-#endif /* _TUSB_OSAL_NONE_H_ */
+#endif /* _TUSB_OS_CUSTOM_H_ */
