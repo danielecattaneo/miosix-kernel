@@ -34,6 +34,7 @@
 #include <algorithm>
 
 using namespace std;
+using namespace miosix_private;
 
 namespace miosix {
 
@@ -363,27 +364,18 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
 // class ConditionVariable
 //
 
-ConditionVariable::ConditionVariable(): first(0), last(0) {}
+ConditionVariable::ConditionVariable() {}
 
 void ConditionVariable::wait(Mutex& m)
 {
     PauseKernelLock dLock;
     
-    WaitingData w;
-    w.p=Thread::getCurrentThread();
-    w.next=0; 
-    //Add entry to tail of list
-    if(first==0)
-    {
-        first=last=&w;
-    } else {
-       last->next=&w;
-       last=&w;
-    }
+    //Add current thread to the waiting list
+    IntrusiveWaitList::Node n(fifo);
     //Unlock mutex and wait
     {
         FastInterruptDisableLock l;
-        w.p->flags.IRQsetCondWait(true);
+        n.thread->flags.IRQsetCondWait(true);
     }
 
     unsigned int depth=m.PKunlockAllDepthLevels(dLock);
@@ -398,19 +390,10 @@ void ConditionVariable::wait(FastMutex& m)
 {
     FastInterruptDisableLock dLock;
     
-    WaitingData w;
-    w.p=Thread::getCurrentThread();
-    w.next=0;
-    //Add entry to tail of list
-    if(first==0)
-    {
-        first=last=&w;
-    } else {
-       last->next=&w;
-       last=&w;
-    }
+    //Add current thread to the waiting list
+    IntrusiveWaitList::Node n(fifo);
     //Unlock mutex and wait
-    w.p->flags.IRQsetCondWait(true);
+    n.thread->flags.IRQsetCondWait(true);
 
     unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m.get());
     {
@@ -428,14 +411,13 @@ void ConditionVariable::signal()
         //that can only be called with irq disabled, othrwise we would use
         //PauseKernelLock
         FastInterruptDisableLock lock;
-        if(first==0) return;
+        Thread *thdToWake = fifo.pop();
+        if(!thdToWake) return;
         //Wakeup
-        first->p->flags.IRQsetCondWait(false);
+        thdToWake->flags.IRQsetCondWait(false);
         //Check for priority issues
         if(Thread::IRQgetCurrentThread()->IRQgetPriority() <
-                first->p->IRQgetPriority()) hppw=true;
-        //Remove from list
-        first=first->next;
+                thdToWake->IRQgetPriority()) hppw=true;
     }
     //If the woken thread has higher priority than our priority, yield
     if(hppw) Thread::yield();
@@ -449,18 +431,18 @@ void ConditionVariable::broadcast()
         //that can only be called with irq disabled, othrwise we would use
         //PauseKernelLock
         FastInterruptDisableLock lock;
-        while(first!=0)
+        Thread *thdToWake = fifo.pop();
+        while(thdToWake)
         {
             //Wakeup
-            first->p->flags.IRQsetCondWait(false);
+            thdToWake->flags.IRQsetCondWait(false);
             //Check for priority issues
             if(Thread::IRQgetCurrentThread()->IRQgetPriority() <
-                first->p->IRQgetPriority()) hppw=true;
-            //Remove from list
-            first=first->next;
+                thdToWake->IRQgetPriority()) hppw=true;
+            thdToWake = fifo.pop();
         }
     }
-    //If at least one of the woken thread has higher priority than our priority,
+    //If at least one of the woken threads has a higher priority than ours,
     //yield
     if(hppw) Thread::yield();
 }

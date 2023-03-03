@@ -31,6 +31,7 @@
 #define SYNC_H
 
 #include "kernel.h"
+#include "sync_private.h"
 #include <vector>
 
 namespace miosix {
@@ -445,22 +446,10 @@ public:
 
 private:
     //Unwanted methods
-    ConditionVariable(const ConditionVariable& );
-    ConditionVariable& operator= (const ConditionVariable& );
+    ConditionVariable(const ConditionVariable&);
+    ConditionVariable& operator= (const ConditionVariable&);
 
-    /**
-     * \internal
-     * \struct WaitingData
-     * This struct is used to make a list of waiting threads.
-     */
-    struct WaitingData
-    {
-        Thread *p;///<\internal Thread that is waiting
-        WaitingData *next;///<\internal Next thread in the list
-    };
-
-    WaitingData *first;///<Pointer to first element of waiting fifo
-    WaitingData *last;///<Pointer to last element of waiting fifo
+    miosix_private::IntrusiveWaitList fifo; ///< List of waiting threads
 };
 
 /**
