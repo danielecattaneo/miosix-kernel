@@ -130,6 +130,7 @@ static void test_23();
 static void test_24();
 static void test_25();
 static void test_26();
+static void test_27();
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -236,6 +237,7 @@ int main()
                 test_24();
                 test_25();
                 test_26();
+                test_27();
                 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
                 testCacheAndDMA();
                 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -4178,6 +4180,60 @@ static void test_26()
         if(errno!=-i-1) fail("errno");
     }
     pthread_join(t,0);
+    pass();
+}
+
+//
+// Test 27
+//
+/*
+tests:
+Semaphore class
+*/
+
+struct t27_data
+{
+    t27_data(): consumer(5), producer(5) {}
+    Semaphore consumer;
+    Semaphore producer;
+};
+
+void t27_t1(t27_data *data)
+{
+    for (int i=0; i<4; i++) {
+        data->consumer.wait();
+    }
+    if (data->consumer.getCount() != 1)
+        fail("wait to 1 with counter >= 0 not working");
+    bool res = data->consumer.tryWait();
+    if (data->consumer.getCount() != 0 || res != true)
+        fail("tryWait to 0 with counter = 1 not working");
+    res = data->consumer.tryWait();
+    if (data->consumer.getCount() != 0 || res != false)
+        fail("tryWait with counter = 0 not working");
+    for (int i=0; i<10; i++) {
+        data->producer.signal();
+        data->consumer.wait();
+    }
+}
+
+static void test_27()
+{
+    test_name("Semaphores");
+    t27_data data;
+    std::thread thd(t27_t1, &data);
+    for (int i=0; i<5; i++) {
+        data.producer.wait();
+    }
+    if (data.producer.getCount() != 0)
+        fail("wait to zero with counter >= 0 not working");
+    for (int i=0; i<10; i++) {
+        data.producer.wait();
+        data.consumer.signal();
+    }
+    thd.join();
+    if (data.producer.getCount() != 0 && data.consumer.getCount() != 0)
+        fail("wait with counter == 0 not working");
     pass();
 }
 
