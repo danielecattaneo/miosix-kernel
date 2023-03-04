@@ -80,7 +80,7 @@ struct IntrusiveWaitList
         ~Node() = default;
 
         /// The thread waiting, or nullptr if the wait has ended.
-        miosix::Thread *thread;
+        miosix::Thread * volatile thread;
         /// The next thread in the linked list.
         Node *next;
 

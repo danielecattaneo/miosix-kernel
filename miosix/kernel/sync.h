@@ -1,6 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
- *   by Terraneo Federico                                                  *
+ *   Copyright (C) 2008 - 2014 by Terraneo Federico                        *
+ *   Copyright (C) 2023 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -449,6 +449,98 @@ private:
     ConditionVariable(const ConditionVariable&);
     ConditionVariable& operator= (const ConditionVariable&);
 
+    miosix_private::IntrusiveWaitList fifo; ///< List of waiting threads
+};
+
+/**
+ * Semaphore primitive for syncronization between multiple threads and
+ * optionally an interrupt handler.<br>
+ * A semaphore is an integer counter that represents the availability of one
+ * or more items of a resource. A producer thread can signal the semaphore to
+ * increment the counter, making more items available. A consumer thread can
+ * wait for the availability of at least one item (i.e. for the counter to be
+ * positive) by using the `wait' on the semaphore. If the counter is already
+ * positive, wait decrements the counter and terminates immediately. Otherwise
+ * it waits for a `signal' to increment the counter first.<br>
+ * It is possible to use Semaphores to orchestrate communication between IRQ
+ * handlers and the main driver code by using the APIs prefixed by `IRQ'.
+ * \note As with all other synchronization primitives, Semaphores are inherently
+ * shared between multiple threads, therefore special care must be taken in
+ * managing their lifetime and ownership.
+ * \since Miosix 3.0
+ */
+class Semaphore
+{
+public:
+    /**
+     * Initialize a new semaphore.
+     * \param initialCount The initial value of the counter.
+     */
+    Semaphore(unsigned int initialCount=0) : count(initialCount) {}
+
+    /**
+     * Increment the semaphore counter, waking up at most one waiting thread.
+     * Only for use in IRQ handlers.
+     * \warning Use in a thread context with interrupts disabled or with the
+     * kernel paused is forbidden.
+     */
+    void IRQsignal();
+
+    /**
+     * Increment the semaphore counter, waking up at most one waiting thread.
+     */
+    void signal();
+
+    /**
+     * Wait for the semaphore counter to be positive, and then decrement it.
+     */
+    void wait();
+
+    /**
+     * Decrement the counter only if it is positive. Only for use in IRQ
+     * handlers or with interrupts disabled.
+     * \return true if the counter was positive.
+     */
+    inline bool IRQtryWait()
+    {
+        // Check if the counter is positive
+        if (count > 0) {
+            // The wait "succeeded"
+            count--;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Decrement the counter only if it is positive.
+     * \return true if the counter was positive.
+     */
+    bool tryWait()
+    {
+        // Global interrupt lock because Semaphore is IRQ-safe
+        FastInterruptDisableLock dLock;
+        return IRQtryWait();
+    }
+
+    /**
+     * \return the current semaphore counter.
+     */
+    unsigned int getCount() { return count; }
+
+private:
+    // Disallow copies
+    Semaphore(const Semaphore&) = delete;
+    Semaphore& operator= (const Semaphore&) = delete;
+
+    /**
+     * \internal
+     * Internal method that signals the semaphore without triggering a
+     * rescheduling for prioritizing newly-woken threads.
+     */
+    inline Thread *IRQsignalNoPreempt();
+
+    volatile unsigned int count; ///< Counter of the semaphore
     miosix_private::IntrusiveWaitList fifo; ///< List of waiting threads
 };
 
