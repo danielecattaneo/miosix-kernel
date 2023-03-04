@@ -163,6 +163,10 @@ main.elf: $(OBJ) all-recursive
 	$(ECHO) "[AS  ] $<"
 	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
+tinyusb/%.o : tinyusb/%.c
+	$(ECHO) "[CXX ] $<"
+	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+
 %.o : %.c
 	$(ECHO) "[CC  ] $<"
 	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@

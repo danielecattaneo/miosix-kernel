@@ -1,9 +1,20 @@
 #include <cstdio>
+#include <thread>
 #include "miosix.h"
 #include "tusb.h"
 
 using namespace std;
 using namespace miosix;
+
+void usbThread(Semaphore *ready)
+{
+    bool r = tusb_init();
+    iprintf("tusb_init = %d\n", r);
+    ready->signal();
+    while (!Thread::testTerminate()) {
+        tud_task();
+    }
+}
 
 int main()
 {
@@ -21,14 +32,17 @@ int main()
     //USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSASEN;
     USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_NOVBUSSENS;
     USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBUSBSEN;
-    bool r = tusb_init();
-    iprintf("tusb_init = %d\n", r);
+
+    Semaphore ready;
+    std::thread usbThd(usbThread, &ready);
+    ready.wait();
+    iprintf("USB thread is ready\n");
+
     while (1)
     {
         for (int i = 0; i < 1000; i++)
         {
             Thread::nanoSleep(1000000);
-            tud_task();
             if (tud_cdc_n_available(0))
             {
                 uint8_t buf[64];
@@ -41,6 +55,7 @@ int main()
         }
         iprintf("%16lld still alive\n", getTime());
     }
+    
     iprintf("END\n");
 }
 
@@ -57,14 +72,18 @@ extern "C" void tud_umount_cb(void)
 //--------------------------------------------------------------------+
 // Forward USB interrupt events to TinyUSB IRQ Handler
 //--------------------------------------------------------------------+
-void OTG_FS_IRQHandler(void)
+__attribute__((naked)) void OTG_FS_IRQHandler(void)
 {
+    saveContext();
     tud_int_handler(0);
+    restoreContext();
 }
 
-void OTG_HS_IRQHandler(void)
+__attribute__((naked)) void OTG_HS_IRQHandler(void)
 {
+    saveContext();
     tud_int_handler(1);
+    restoreContext();
 }
 
 /* A combination of interfaces must have a unique product id, since PC will save device driver after the first plug.
