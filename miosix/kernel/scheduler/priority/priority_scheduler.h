@@ -142,6 +142,41 @@ public:
     
     static long long IRQgetNextPreemption();
 
+    struct Iterator
+    {
+        friend class PriorityScheduler;
+        Iterator& operator++()
+        {
+            if (j == nullptr)
+                return *this;
+            if (i == -1 || j->schedData.next == thread_list[i]) {
+                do {
+                    i++;
+                } while (i < PRIORITY_MAX && thread_list[i] == nullptr);
+                if (i >= PRIORITY_MAX) {
+                    j = nullptr;
+                    return *this;
+                }
+                j = thread_list[i];
+            } else {
+                j = j->schedData.next;
+            }
+            return *this;
+        }
+        Thread *operator*()
+        {
+            return j;
+        }
+    private:
+        Iterator(int i, Thread *j): i(i), j(j) {}
+        int i;
+        Thread *j;
+    };
+
+    static Iterator begin() { return Iterator(-1, idle); }
+
+    static Iterator end() { return Iterator(PRIORITY_MAX, nullptr); }
+
 private:
 
     ///\internal Vector of lists of threads, there's one list for each priority
