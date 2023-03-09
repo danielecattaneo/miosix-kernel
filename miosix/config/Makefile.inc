@@ -20,7 +20,7 @@
 #OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
-#OPT_BOARD := stm32f207zg_nucleo
+OPT_BOARD := stm32f207zg_nucleo
 #OPT_BOARD := stm32f207ze_als_camboard
 #OPT_BOARD := stm32l151_als_mainboard
 #OPT_BOARD := stm32f407vg_bitsboard
