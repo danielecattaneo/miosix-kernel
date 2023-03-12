@@ -20,7 +20,7 @@
 #OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
-#OPT_BOARD := stm32f207zg_nucleo
+OPT_BOARD := stm32f207zg_nucleo
 #OPT_BOARD := stm32f207ze_als_camboard
 #OPT_BOARD := stm32l151_als_mainboard
 #OPT_BOARD := stm32f407vg_bitsboard
@@ -205,8 +205,8 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ## (see the XRAM flag below)
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
-    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:
@@ -216,8 +216,8 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ## in xram (with an appropriate linker script selected above)
     ## none selected : don't use xram (with an appropriate linker script
     ## selected above)
-    #XRAM := -D__ENABLE_XRAM
-    XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
+    XRAM := -D__ENABLE_XRAM
+    #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
 
 endif
 
@@ -1821,8 +1821,8 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
-        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
-        /dev/ttyUSB0 main.bin
+        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/build/pc_loader \
+        /dev/tty.usbserial-3 main.bin
         else
             PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
         endif
