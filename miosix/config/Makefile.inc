@@ -55,6 +55,7 @@
 #OPT_BOARD := stm32l4r9zi_sensortile
 #OPT_BOARD := stm32f767zi_nucleo
 #OPT_BOARD := stm32f769ni_discovery
+OPT_BOARD := stm32f205rc_frankennucleo
 
 ##
 ## Optimization flags, choose one.
@@ -650,6 +651,12 @@ ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
 
 endif
 
+##---------------------------------------------------------------------------
+## stm32f205rc_frankennucleo
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -753,6 +760,8 @@ else ifeq ($(OPT_BOARD),stm32f767zi_nucleo)
     ARCH := cortexM7_stm32f7
 else ifeq ($(OPT_BOARD),stm32f769ni_discovery)
     ARCH := cortexM7_stm32f7
+else ifeq ($(OPT_BOARD),stm32f205rc_frankennucleo)
+	ARCH := cortexM3_stm32f2
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -2040,6 +2049,42 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+	
+	##-------------------------------------------------------------------------
+    ## BOARD: stm32f205rc_frankennucleo
+    ##
+    else ifeq ($(OPT_BOARD),stm32f205rc_frankennucleo)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32f2/stm32f205rc_frankennucleo
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_256k+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
+        arch/common/drivers/stm32f2_f4_i2c.cpp       \
+        arch/common/drivers/servo_stm32.cpp          \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F205RC_FRANKENNUCLEO
+        CXXFLAGS_BASE += -D_BOARD_STM32F205RC_FRANKENNUCLEO
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_120MHz=120000000
+        
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := st-flash --reset write main.bin 0x8000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
