@@ -43,6 +43,9 @@ int main()
     iprintf("main thread time 1 = %lld\n", b);
     iprintf("main thread dt = %lld\n", b - a);
     #endif
+    spinThd.join();
+    sleep(3);
+    std::thread spinThd2(spin);
     for (;;) {
         sleep(1);
     }
