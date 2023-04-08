@@ -483,4 +483,74 @@ void ConditionVariable::broadcast()
     if(hppw) Thread::yield();
 }
 
+//
+// class Semaphore
+//
+
+Thread *Semaphore::IRQsignalNoPreempt()
+{
+    // Check if somebody is waiting
+    if(fifo.empty()) {
+        // Nobody there, just increment the counter
+        count++;
+        return nullptr;
+    }
+    CondData& cd=*(fifo.front());
+    fifo.pop_front();
+    cd.thread->IRQwakeup();
+    return cd.thread;
+}
+
+void Semaphore::IRQsignal()
+{
+    // Update the state of the FIFO and the counter
+    Thread *thdToWake = IRQsignalNoPreempt();
+    if(thdToWake) {
+        // If the woken thread has higher priority trigger a reschedule
+        if(Thread::IRQgetCurrentThread()->IRQgetPriority()<thdToWake->IRQgetPriority())
+            Scheduler::IRQfindNextThread();
+    }
+}
+
+void Semaphore::signal()
+{
+    Thread *thdToWake;
+    bool mustYield = false;
+    {
+        // Global interrupt lock because Semaphore is IRQ-safe
+        FastInterruptDisableLock dLock;
+        // Update the state of the FIFO and the counter
+        thdToWake=IRQsignalNoPreempt();
+        if(thdToWake) {
+            // If the woken thread has higher priority trigger a yield
+            if(Thread::IRQgetCurrentThread()->IRQgetPriority()<thdToWake->IRQgetPriority())
+                mustYield=true;
+        }
+    }
+    if (mustYield)
+        Thread::yield();
+}
+
+void Semaphore::wait()
+{
+    // Global interrupt lock because Semaphore is IRQ-safe
+    FastInterruptDisableLock dLock;
+    // If the counter is positive, decrement it and we're done
+    unsigned int c=count;
+    if(c>0) {
+        count=c-1;
+        return;
+    }
+    // Otherwise put ourselves in queue and wait
+    Thread *t=Thread::getCurrentThread();
+    CondData listItem(t);
+    fifo.push_back(&listItem); //Add entry to tail of list
+    Thread::IRQwait();
+    {
+        FastInterruptEnableLock eLock(dLock);
+        // The wait becomes effective here
+        Thread::yield();
+    }
+}
+
 } //namespace miosix
