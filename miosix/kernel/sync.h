@@ -556,6 +556,14 @@ public:
     void wait();
 
     /**
+     * Wait up to a given timeout for the semaphore counter to be positive,
+     * and then decrement it.
+     * \param absTime absolute timeout time in nanoseconds
+     * \return whether the return was due to a timeout or wakeup
+     */
+    TimedWaitResult timedWait(long long absTime);
+
+    /**
      * Decrement the counter only if it is positive. Only for use in IRQ
      * handlers or with interrupts disabled.
      * \return true if the counter was positive.

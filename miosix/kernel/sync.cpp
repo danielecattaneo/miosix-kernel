@@ -489,24 +489,26 @@ void ConditionVariable::broadcast()
 
 Thread *Semaphore::IRQsignalNoPreempt()
 {
-    // Check if somebody is waiting
+    //Check if somebody is waiting
     if(fifo.empty()) {
-        // Nobody there, just increment the counter
+        //Nobody there, just increment the counter
         count++;
         return nullptr;
     }
     CondData& cd=*(fifo.front());
+    Thread *t=cd.thread;
     fifo.pop_front();
-    cd.thread->IRQwakeup();
+    t->flags.IRQsetCondWait(false);
+    t->flags.IRQsetSleep(false); //Needed due to timedwait
     return cd.thread;
 }
 
 void Semaphore::IRQsignal()
 {
-    // Update the state of the FIFO and the counter
+    //Update the state of the FIFO and the counter
     Thread *thdToWake = IRQsignalNoPreempt();
     if(thdToWake) {
-        // If the woken thread has higher priority trigger a reschedule
+        //If the woken thread has higher priority trigger a reschedule
         if(Thread::IRQgetCurrentThread()->IRQgetPriority()<thdToWake->IRQgetPriority())
             Scheduler::IRQfindNextThread();
     }
@@ -517,12 +519,12 @@ void Semaphore::signal()
     Thread *thdToWake;
     bool mustYield = false;
     {
-        // Global interrupt lock because Semaphore is IRQ-safe
+        //Global interrupt lock because Semaphore is IRQ-safe
         FastInterruptDisableLock dLock;
-        // Update the state of the FIFO and the counter
+        //Update the state of the FIFO and the counter
         thdToWake=IRQsignalNoPreempt();
         if(thdToWake) {
-            // If the woken thread has higher priority trigger a yield
+            //If the woken thread has higher priority trigger a yield
             if(Thread::IRQgetCurrentThread()->IRQgetPriority()<thdToWake->IRQgetPriority())
                 mustYield=true;
         }
@@ -533,24 +535,62 @@ void Semaphore::signal()
 
 void Semaphore::wait()
 {
-    // Global interrupt lock because Semaphore is IRQ-safe
+    //Global interrupt lock because Semaphore is IRQ-safe
     FastInterruptDisableLock dLock;
-    // If the counter is positive, decrement it and we're done
+    //If the counter is positive, decrement it and we're done
     unsigned int c=count;
     if(c>0) {
         count=c-1;
         return;
     }
-    // Otherwise put ourselves in queue and wait
+    //Otherwise put ourselves in queue and wait
     Thread *t=Thread::getCurrentThread();
     CondData listItem(t);
     fifo.push_back(&listItem); //Add entry to tail of list
-    Thread::IRQwait();
+    t->flags.IRQsetCondWait(true);
     {
         FastInterruptEnableLock eLock(dLock);
-        // The wait becomes effective here
+        //The wait becomes effective here
         Thread::yield();
     }
+}
+
+TimedWaitResult Semaphore::timedWait(long long absTime)
+{
+    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
+    //algorithm in TimeConversion can't handle negative values and may undeflow
+    //even with very low values due to a negative adjustOffsetNs. As an unlikely
+    //side effect, very short sleeps done very early at boot will be extended.
+    absTime=std::max(absTime,100000LL);
+
+    //Global interrupt lock because Semaphore is IRQ-safe
+    FastInterruptDisableLock dLock;
+    //If the counter is positive, decrement it and we're done
+    unsigned int c=count;
+    if(c>0) {
+        count=c-1;
+        return TimedWaitResult::NoTimeout;
+    }
+    //Otherwise put ourselves in queue...
+    Thread *t=Thread::getCurrentThread();
+    CondData listItem(t);
+    fifo.push_back(&listItem);
+    //...and simultaneously to sleep
+    SleepData sleepData(t,absTime);
+    IRQaddToSleepingList(&sleepData);
+    t->flags.IRQsetCondWait(true);
+    {
+        FastInterruptEnableLock eLock(dLock);
+        //Wait/sleep becomes effective here
+        Thread::yield();
+    }
+    
+    //We got woken up by either the sleep or the wait. Ensure that the thread
+    //is removed from both the wait list and the sleep list.
+    bool removed=fifo.removeFast(&listItem);
+    IRQremoveFromSleepingList(&sleepData);
+    //If we were still in the fifo, we were woken up by a timeout
+    return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
 }
 
 } //namespace miosix
