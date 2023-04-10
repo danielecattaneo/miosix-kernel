@@ -12,7 +12,8 @@ void usbThread(Semaphore *ready)
     iprintf("tusb_init = %d\n", r);
     ready->signal();
     while (!Thread::testTerminate()) {
-        tud_task();
+        tud_task_ext(1000, false);
+        iprintf("%16lld tud_task still alive\n", getTime());
     }
 }
 
@@ -53,7 +54,7 @@ int main()
                 tud_cdc_n_write_flush(0);
             }
         }
-        iprintf("%16lld still alive\n", getTime());
+        //iprintf("%16lld still alive\n", getTime());
     }
     
     iprintf("END\n");

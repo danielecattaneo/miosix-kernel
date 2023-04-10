@@ -46,10 +46,12 @@ TU_ATTR_ALWAYS_INLINE static inline bool osal_semaphore_post(osal_semaphore_t se
     return true;
 }
 
-// TODO blocking for now
 TU_ATTR_ALWAYS_INLINE static inline bool osal_semaphore_wait(osal_semaphore_t sem_hdl, uint32_t msec)
 {
-    sem_hdl->wait();
+    if (msec == OSAL_TIMEOUT_WAIT_FOREVER)
+        sem_hdl->wait();
+    else
+        sem_hdl->timedWait(miosix::getTime() + (long long)msec * 1000000LL);
     return true;
 }
 
@@ -124,7 +126,10 @@ TU_ATTR_ALWAYS_INLINE static inline osal_queue_t osal_queue_create(osal_queue_de
 
 TU_ATTR_ALWAYS_INLINE static inline bool osal_queue_receive(osal_queue_t qhdl, void *data, uint32_t msec)
 {
-    qhdl->itemAvailable.wait();
+    if (msec == OSAL_TIMEOUT_WAIT_FOREVER)
+        qhdl->itemAvailable.wait();
+    else
+        qhdl->itemAvailable.timedWait(miosix::getTime() + (long long)msec * 1000000LL);
     bool success;
     {
         miosix::FastInterruptDisableLock dLock;
