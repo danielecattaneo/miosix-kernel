@@ -4238,6 +4238,16 @@ void *t27_t3(void *xdata)
     return nullptr;
 }
 
+void *t27_t4(void *xdata)
+{
+    t27_data *data=reinterpret_cast<t27_data *>(xdata);
+    data->producer.signal();
+    data->consumer.wait();
+    data->producer.signal();
+    data->consumer.timedWait(getTime()+200*1000000LL);
+    return nullptr;
+}
+
 static void test_27()
 {
     test_name("Semaphores");
@@ -4293,6 +4303,33 @@ static void test_27()
     for(int i=0; i<3; i++) data.consumer.signal();
     for(int i=0; i<3; i++) thds[i]->join(); //This hangs if the test fails
     #endif
+
+    //Testing spurious wakeups
+    #ifndef SCHED_TYPE_EDF
+    //Priority is > than MAIN_PRIORITY to ensure the thread gets stuck
+    //at the `data->consumer.wait();` line and not earlier.
+    //Again this test is disabled on EDF scheduler.
+    Thread *thd4=Thread::create(t27_t4,STACK_SMALL,MAIN_PRIORITY+1,reinterpret_cast<void*>(&data),Thread::JOINABLE);
+    iprintf("a\n");
+    data.producer.wait();
+    iprintf("b\n");
+    thd4->wakeup();
+    iprintf("c\n");
+    if (data.producer.timedWait(getTime()+1000000LL) != TimedWaitResult::Timeout)
+        fail("Spurious wakeup canceled semaphore wait");
+    iprintf("d\n");
+    data.consumer.signal();
+    iprintf("e\n");
+    data.producer.wait();
+    iprintf("f\n");
+    if (data.producer.timedWait(getTime()+1000000LL) != TimedWaitResult::Timeout)
+        fail("Spurious wakeup canceled semaphore timedWait");
+    iprintf("g\n");
+    data.consumer.signal();
+    iprintf("h\n");
+    thd4->join();
+    #endif
+
     pass();
 }
 
@@ -5204,7 +5241,7 @@ static void benchmark_3()
 //
 /*
 tests:
-Mutex lonk/unlock time
+Mutex lock/unlock time
 */
 
 volatile bool b4_end=false;
