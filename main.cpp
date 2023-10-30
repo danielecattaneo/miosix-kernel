@@ -5,9 +5,8 @@
 using namespace std;
 using namespace miosix;
 
-int main()
+void test_data_bus()
 {
-    iprintf("marco-ram-board half-assed RAM test\n");
     iprintf("pattern? 0: 55/AA, 1: shifting 1\n");
     int pattern;
     scanf("%d", &pattern);
@@ -32,5 +31,40 @@ int main()
             }
         }
     }
+}
+
+int main()
+{
+    iprintf("marco-ram-board half-assed RAM test\n");
+    volatile uint32_t *sdram_ptr = (uint32_t *)0xC0000000;
+    uint32_t offset = 0;
+    uint32_t end = (512*1024*1024) / 4;
+    srand(1234);
+    while (offset < end) {
+        uint32_t test = rand();
+        sdram_ptr[offset] = test;
+        iprintf("addr. %p wrote %08lx\n", &sdram_ptr[offset], test);
+        test = rand();
+        if (offset == 0)
+            offset = 1;
+        else
+            offset = offset << 1;
+    }
+    srand(1234);
+    offset = 0;
+    int fail = 0;
+    while (offset < end) {
+        uint32_t test = rand();
+        uint32_t read = sdram_ptr[offset];
+        int ok = test == read;
+        iprintf("addr. %p read %08lx expected %08lx %s\n", &sdram_ptr[offset], read, test, ok ? "OK" : "NG");
+        fail += !ok;
+        test = rand();
+        if (offset == 0)
+            offset = 1;
+        else
+            offset = offset << 1;
+    }
+    iprintf("failures: %d\n", fail);
 }
 

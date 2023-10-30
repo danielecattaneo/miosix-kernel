@@ -60,7 +60,7 @@
 #OPT_BOARD := efm32g222f128_generic
 #OPT_BOARD := stm32l053r8_nucleo
 #OPT_BOARD := stm32f030r8_stm32f0discovery
-#OPT_BOARD := stm32f765ii_marco_ram_board
+OPT_BOARD := stm32f765ii_marco_ram_board
 #OPT_BOARD := rp2040_raspberry_pi_pico
 
 ##

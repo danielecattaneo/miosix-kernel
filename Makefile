@@ -17,7 +17,8 @@ SUBDIRS := $(KPATH)
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-main.cpp
+miosix/_tools/ram_test/main.cpp miosix/_tools/ram_test/sha1.cpp
+#main.cpp
 #miosix/_tools/testsuite/testsuite.cpp
 
 ##
@@ -28,7 +29,7 @@ LIBS :=
 ##
 ## List here additional include directories (in the form -Iinclude_dir)
 ##
-INCLUDE_DIRS :=
+INCLUDE_DIRS := -Imiosix/_tools/ram_test
 
 ##
 ## Attach a romfs filesystem image after the kernel
