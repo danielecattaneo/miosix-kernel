@@ -107,6 +107,7 @@ $(OBJ_DIR)/%.o : %.cpp
 
 $(OBJ): | $(OBJ_DIR)
 
+.PHONY: $(OBJ_DIR)
 $(OBJ_DIR):
 	mkdir -p $(sort $(dir $(OBJ)))
 
