@@ -19,6 +19,7 @@ miosix/_tools/filesystems/build
 miosix/_tools/filesystems/buildromfs
 miosix/_tools/bin2uf2/build
 miosix/_tools/bin2uf2/bin2uf2
+obj
 
 # Exclude Mac OS X temporary
 ._*
