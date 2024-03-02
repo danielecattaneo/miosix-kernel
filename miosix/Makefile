@@ -64,8 +64,11 @@ Q := @
 ECHO := @echo
 endif
 
+OBJ_DIR ?= obj
+LIBMIOSIX ?= libmiosix.a
+
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
-OBJ := $(addsuffix .o, $(basename $(SRC)))
+OBJ := $(patsubst %, $(OBJ_DIR)/%, $(addsuffix .o, $(basename $(SRC))))
 
 ## Includes the miosix base directory for C/C++
 ## Always include CONFPATH first, as it overrides the config file location
@@ -82,24 +85,30 @@ DFLAGS    := -MMD -MP
 all: $(OBJ) $(BOOT_FILE)
 	$(ECHO) "[PERL] Checking global objects"
 	$(Q)perl _tools/kernel_global_objects.pl $(OBJ)
-	$(ECHO) "[AR  ] libmiosix.a"
-	$(Q)$(AR) rcs libmiosix.a $(OBJ)
+	$(ECHO) "[AR  ] $(LIBMIOSIX)"
+	$(Q)$(AR) rcs $(LIBMIOSIX) $(OBJ)
 
 clean:
-	-rm -f $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d)
+	-rm -f $(OBJ) $(BOOT_FILE) $(LIBMIOSIX) $(OBJ:.o=.d)
 	-rm -f $(BOOT_FILE:.o=.d)
+	-rm -rf $(OBJ_DIR)
 
-%.o: %.s
+$(OBJ_DIR)/%.o: %.s
 	$(ECHO) "[AS  ] $<"
 	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
-%.o : %.c
+$(OBJ_DIR)/%.o : %.c
 	$(ECHO) "[CC  ] $<"
 	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
-%.o : %.cpp
+$(OBJ_DIR)/%.o : %.cpp
 	$(ECHO) "[CXX ] $<"
 	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+
+$(OBJ): | $(OBJ_DIR)
+
+$(OBJ_DIR):
+	mkdir -p $(sort $(dir $(OBJ)))
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
