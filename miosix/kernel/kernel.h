@@ -1226,7 +1226,9 @@ private:
     ///Pointer to the set of saved registers for when the thread is running in
     ///user mode. For kernel threads (i.e, threads where proc==kernel) this
     ///pointer is null
+public:
     unsigned int *userCtxsave;
+private:
     #endif //WITH_PROCESSES
     #ifdef WITH_CPU_TIME_COUNTER
     CPUTimeCounterPrivateThreadData timeCounterData;

@@ -151,7 +151,6 @@ public:
      */
     void setParameter(unsigned int index, unsigned int value);
 
-private:
     unsigned int *registers;
 };
 

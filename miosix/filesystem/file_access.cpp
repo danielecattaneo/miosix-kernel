@@ -173,14 +173,19 @@ int FileDescriptorTable::chdir(const char* name)
     Lock<FastMutex> l(mutex);
     if(name[0]!='/') len+=cwd.length();
     if(len>PATH_MAX) return -ENAMETOOLONG;
+
+    iprintf("r9=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6]);
     
     string newCwd;
+    iprintf("r9=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6]);
     newCwd.reserve(len);
+    iprintf("r9=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6]);
     if(name[0]=='/') newCwd=name;
     else {
         newCwd=cwd;
         newCwd+=name;
     }
+    iprintf("r9=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6]);
     ResolvedPath openData=FilesystemManager::instance().resolvePath(newCwd);
     if(openData.result<0) return openData.result;
     struct stat st;
@@ -189,6 +194,7 @@ int FileDescriptorTable::chdir(const char* name)
         if(int result=openData.fs->lstat(sp,&st)) return result;
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
     }
+    iprintf("r9=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6]);
     //NOTE: put after resolvePath() as it strips trailing /
     //Also put after lstat() as it fails if path has a trailing slash
     newCwd+='/';

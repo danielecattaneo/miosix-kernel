@@ -499,12 +499,16 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::CHDIR:
             {
+                iprintf("r9=%p, usrCtx=%p, ctx=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6], Thread::getCurrentThread()->userCtxsave, sp.registers);
                 auto str=reinterpret_cast<const char*>(sp.getParameter(0));
                 if(mpu.withinForReading(str))
                 {
+                    iprintf("r9=%p, usrCtx=%p, ctx=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6], Thread::getCurrentThread()->userCtxsave, sp.registers);
                     int result=fileTable.chdir(str);
+                    iprintf("r9=%p, usrCtx=%p, ctx=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6], Thread::getCurrentThread()->userCtxsave, sp.registers);
                     sp.setParameter(0,result);
                 } else sp.setParameter(0,-EFAULT);
+                iprintf("r9=%p, usrCtx=%p, ctx=%p\n", (void*)Thread::getCurrentThread()->userCtxsave[6], Thread::getCurrentThread()->userCtxsave, sp.registers);
                 break;
             }
 
