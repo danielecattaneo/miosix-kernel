@@ -84,6 +84,10 @@ void Reset_Handler()
     asm volatile("ldr sp, =_main_stack_top\n\t");
     #endif //__CODE_IN_XRAM
 
+	extern unsigned char _end asm("_end");
+	extern unsigned char _heap_end asm("_heap_end");
+    memset(&_end, 0x45455246, &_heap_end-&_end);
+
 	/*
 	 * SystemInit() is called *before* initializing .data and zeroing .bss
 	 * Despite all startup files provided by ST do the opposite, there are three

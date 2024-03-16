@@ -48,6 +48,83 @@ using namespace std;
 #warning: TODO: FIX __gthread_key_t in libstdc++/include/std/memory_resource
 #endif
 
+void *checked_malloc(size_t size)
+{
+    const size_t paddingBefore = 16;
+    const size_t paddingAfter = 16;
+    void *buf = malloc(size+paddingBefore+paddingAfter);
+    if (!buf)
+        return buf;
+    char *charbuf = reinterpret_cast<char *>(buf);
+    size_t realChunkSize = *reinterpret_cast<size_t *>(buf-4) & ~1UL;
+    const size_t extraPadding = realChunkSize-4-paddingBefore-paddingAfter-size;
+    *reinterpret_cast<size_t *>(buf) = size;
+    for (size_t i=4; i<paddingBefore; i++)
+        charbuf[i] = 'P';
+    for (size_t i=paddingBefore; i<paddingBefore+size; i++)
+        charbuf[i] = 'X';
+    for (size_t i=paddingBefore+size; i<paddingBefore+size+paddingAfter+extraPadding; i++)
+        charbuf[i] = 'Q';
+    return buf+paddingBefore;
+}
+
+void checked_delete(void *_buf)
+{
+    const size_t paddingBefore = 16;
+    const size_t paddingAfter = 16;
+    void *buf = _buf-paddingBefore;
+    char *charbuf = reinterpret_cast<char *>(buf);
+    size_t realChunkSize = *reinterpret_cast<size_t *>(buf-4) & ~1UL;
+    size_t size;
+    if (realChunkSize <= paddingBefore+paddingAfter)
+        goto failure;
+    size = *reinterpret_cast<size_t *>(buf);
+    if (realChunkSize < paddingBefore+paddingAfter+size)
+        goto failure;
+    for (size_t i=4; i<paddingBefore; i++)
+        if (charbuf[i] != 'P') goto failure;
+    for (size_t i=paddingBefore+size; i<realChunkSize-4; i++)
+        if (charbuf[i] != 'Q') goto failure;
+    // seems ok
+    for (size_t i=0; i<realChunkSize-4; i++)
+        charbuf[i] = 'F';
+    free(buf);
+    return;
+failure:
+    errorLog("*** corrupted malloc chunk detected\n");
+    _exit(1);
+}
+
+void *operator new(size_t size) noexcept
+{
+    return checked_malloc(size);
+}
+
+void *operator new(size_t size, const std::nothrow_t&) noexcept
+{
+    return checked_malloc(size);
+}
+
+void *operator new[](size_t size) noexcept
+{
+    return checked_malloc(size);
+}
+
+void *operator new[](size_t size, const std::nothrow_t&) noexcept
+{
+    return checked_malloc(size);
+}
+
+void operator delete(void *p) noexcept
+{
+    checked_delete(p);
+}
+
+void operator delete[](void *p) noexcept
+{
+    checked_delete(p);
+}
+
 #ifdef __NO_EXCEPTIONS
 /*
  * If not using exceptions, ovverride the default new, delete with

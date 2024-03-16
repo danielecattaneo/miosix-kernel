@@ -672,6 +672,9 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
     unsigned int *base=thread->watermark;
     try {
         thread->userCtxsave=new unsigned int[CTXSAVE_SIZE];
+        for (int i=0; i<CTXSAVE_SIZE; i++) {
+            thread->userCtxsave[i]=0x0d10dbba;
+        }
     } catch(std::bad_alloc&) {
         thread->~Thread();
         free(base); //Delete ALL thread memory
