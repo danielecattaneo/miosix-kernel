@@ -125,6 +125,13 @@ void *__dso_handle=(void*) &__dso_handle;
 
 
 
+char *highWatermark=nullptr;
+
+unsigned int getMaxHeap()
+{
+    extern char _end asm("_end");
+    return highWatermark-&_end;
+}
 
 /**
  * \internal
@@ -141,6 +148,9 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
 
     prevHeapEnd=curHeapEnd;
     curHeapEnd+=incr;
+
+    if(curHeapEnd>highWatermark) highWatermark=curHeapEnd;
+
     return reinterpret_cast<void*>(prevHeapEnd);
 }
 
