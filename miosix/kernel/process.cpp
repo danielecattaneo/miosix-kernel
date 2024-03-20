@@ -327,7 +327,17 @@ void *Process::start(void *)
     } while(running);
 
     iprintf("Syscall stats\n");
-    for(int i=0;i<Process::numSyscalls;i++) iprintf("%d %d\n",i,proc->syscallCount[i]);
+    static const char *syscallNames[] = {
+        "YIELD","USERSPACE","OPEN","CLOSE","READ","WRITE","LSEEK","STAT",
+        "LSTAT","FSTAT","FCNTL","IOCTL","ISATTY","GETCWD","CHDIR","GETDENTS",
+        "MKDIR","RMDIR","LINK","UNLINK","SYMLINK","READLINK","RENAME","CHMOD",
+        "FCHMOD","CHOWN","FCHOWN","LCHOWN","DUP","DUP2","PIPE","ACCESS",
+        "GETTIME","SETTIME","NANOSLEEP","GETRES","ADJTIME","EXIT","EXECVE",
+        "SPAWN","KILL","WAITPID","GETPID","GETPPID","GETUID","GETGID","GETEUID",
+        "GETEGID","SETUID","SETGID","MOUNT","UMOUNT","MKFS"
+    };
+    for(int i=0;i<Process::numSyscalls;i++)
+        iprintf("%3d %-10s %10d\n",i,syscallNames[i],proc->syscallCount[i]);
 
     proc->fileTable.closeAll();
     {
