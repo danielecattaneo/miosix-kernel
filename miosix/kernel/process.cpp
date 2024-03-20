@@ -234,6 +234,8 @@ Process::Process(const FileDescriptorTable& fdt, const ElfProgram& program,
     //thread of the process will be stored in this vector
     threads.reserve(1);
     load(program,std::move(args));
+
+    for(int i=0;i<numSyscalls;i++) syscallCount[i]=0;
 }
 
 void Process::load(const ElfProgram& program, ArgsBlock&& args)
@@ -322,6 +324,10 @@ void *Process::start(void *)
         } while(running && svcResult!=Execve);
         if(svcResult==Execve) proc->fileTable.cloexec();
     } while(running);
+
+    iprintf("Syscall stats\n");
+    for(int i=0;i<Process::numSyscalls;i++) iprintf("%d %d\n",i,proc->syscallCount[i]);
+
     proc->fileTable.closeAll();
     {
         Processes& p=Processes::instance();
@@ -348,6 +354,9 @@ void *Process::start(void *)
 
 Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
 {
+    int sysId=sp.getSyscallId();
+    if(sysId>=0 && sysId<numSyscalls) syscallCount[sysId]++;
+
     try {
         switch(static_cast<Syscall>(sp.getSyscallId()))
         {

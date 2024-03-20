@@ -237,6 +237,9 @@ private:
     ConditionVariable waiting;
     bool zombie; ///< True for terminated not yet joined processes
     short int exitCode; ///< Contains the exit code
+
+    static const int numSyscalls=53;
+    int syscallCount[numSyscalls];
     
     //Needs access to fault,mpu
     friend class Thread;
