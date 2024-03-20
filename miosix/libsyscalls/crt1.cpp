@@ -191,6 +191,12 @@ const char *__processStackEnd;
 // used by memoryprofiling
 const char *__maxUsedHeap=nullptr;
 
+unsigned int getMaxHeap()
+{
+    extern char _end asm("_end");
+    return __maxUsedHeap-&_end;
+}
+
 /**
  * \internal
  * _sbrk_r, allocates memory dynamically
