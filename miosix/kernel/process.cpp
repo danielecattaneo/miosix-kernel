@@ -114,7 +114,7 @@ Processes& Processes::instance()
 // class Process
 //
 
-pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
+pid_t Process::create(const ElfProgram& program, ArgsBlock&& args, long long t0)
 {
     Processes& p=Processes::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
@@ -141,6 +141,8 @@ pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
     proc->threads.push_back(thr);
     thr->wakeup(); //Actually start the thread, now that everything is set up
     pid_t result=proc->pid;
+    long long t1 = getTime();
+    proc->spawnTimeNs=t1-t0;
     proc.release(); //Do not delete the pointer
     return result;
 }
@@ -148,11 +150,12 @@ pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
 pid_t Process::spawn(const char *path, const char* const* argv,
         const char* const* envp, int narg, int nenv)
 {
+    long long t0 = getTime();
     ArgsBlock args(argv,envp,narg,nenv);
     if(args.valid()==false) return -E2BIG;
     auto prog=lookup(path);
     if(prog.second) return prog.second;
-    return Process::create(prog.first,std::move(args));
+    return Process::create(prog.first,std::move(args),t0);
 }
 
 pid_t Process::spawn(const char *path, const char* const* argv,
@@ -325,7 +328,7 @@ void *Process::start(void *)
         if(svcResult==Execve) proc->fileTable.cloexec();
     } while(running);
 
-    iprintf("Syscall stats\n");
+    fiprintf(stderr, "Syscall stats\n");
     static const char *syscallNames[] = {
         "YIELD","USERSPACE","OPEN","CLOSE","READ","WRITE","LSEEK","STAT",
         "LSTAT","FSTAT","FCNTL","IOCTL","ISATTY","GETCWD","CHDIR","GETDENTS",
@@ -337,6 +340,7 @@ void *Process::start(void *)
     };
     for(int i=0;i<Process::numSyscalls;i++)
         fiprintf(stderr, "%3d %-10s %10d\n",i,syscallNames[i],proc->syscallCount[i]);
+    fiprintf(stderr, "Time spent for spawning: %lld ns\n", proc->spawnTimeNs);
     fiprintf(stderr, "Time spent in I/O: %lld ns\n", proc->ioTimeNs);
 
     proc->fileTable.closeAll();
