@@ -236,6 +236,7 @@ private:
 
     static const int numSyscalls=53;
     int syscallCount[numSyscalls];
+    long long ioTimeNs=0;
     
     //Needs access to fault,mpu
     friend class Thread;

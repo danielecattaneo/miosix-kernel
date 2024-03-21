@@ -337,7 +337,8 @@ void *Process::start(void *)
         "GETEGID","SETUID","SETGID","MOUNT","UMOUNT","MKFS"
     };
     for(int i=0;i<Process::numSyscalls;i++)
-        iprintf("%3d %-10s %10d\n",i,syscallNames[i],proc->syscallCount[i]);
+        fiprintf(stderr, "%3d %-10s %10d\n",i,syscallNames[i],proc->syscallCount[i]);
+    fiprintf(stderr, "Time spent in I/O: %lld ns\n", proc->ioTimeNs);
 
     proc->fileTable.closeAll();
     {
@@ -398,7 +399,10 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                 size_t size=sp.getParameter(2);
                 if(mpu.withinForWriting(ptr,size))
                 {
+                    long long t0 = getTime();
                     ssize_t result=fileTable.read(fd,ptr,size);
+                    long long t1 = getTime();
+                    ioTimeNs += t1 - t0;
                     sp.setParameter(0,result);
                 } else sp.setParameter(0,-EFAULT);
                 break;
@@ -411,7 +415,10 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                 size_t size=sp.getParameter(2);
                 if(mpu.withinForReading(ptr,size))
                 {
+                    long long t0 = getTime();
                     ssize_t result=fileTable.write(fd,ptr,size);
+                    long long t1 = getTime();
+                    ioTimeNs += t1 - t0;
                     sp.setParameter(0,result);
                 } else sp.setParameter(0,-EFAULT);
                 break;
