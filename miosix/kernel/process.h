@@ -107,7 +107,7 @@ public:
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t create(ElfProgram&& program, ArgsBlock&& args);
+    static pid_t create(ElfProgram&& program, ArgsBlock&& args, long long t0=0);
 
     /**
      * Create a new process from a file in the filesystem
@@ -237,6 +237,7 @@ private:
     static const int numSyscalls=53;
     int syscallCount[numSyscalls];
     long long ioTimeNs=0;
+    long long spawnTimeNs=0;
     
     //Needs access to fault,mpu
     friend class Thread;
