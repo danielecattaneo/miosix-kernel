@@ -236,7 +236,8 @@ private:
 
     static const int numSyscalls=53;
     int syscallCount[numSyscalls];
-    long long ioTimeNs=0;
+    long long ioWriteTimeNs=0;
+    long long ioReadTimeNs=0;
     long long spawnTimeNs=0;
     
     //Needs access to fault,mpu

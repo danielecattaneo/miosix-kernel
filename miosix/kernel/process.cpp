@@ -342,7 +342,8 @@ void *Process::start(void *)
     for(int i=0;i<Process::numSyscalls;i++)
         fiprintf(stderr, "%3d %-10s %10d\n",i,syscallNames[i],proc->syscallCount[i]);
     fiprintf(stderr, "Time spent for spawning: %lld ns\n", proc->spawnTimeNs);
-    fiprintf(stderr, "Time spent in I/O: %lld ns\n", proc->ioTimeNs);
+    //fiprintf(stderr, "Time spent in reads: %lld ns\n", proc->ioReadTimeNs);
+    //fiprintf(stderr, "Time spent in writes: %lld ns\n", proc->ioWriteTimeNs);
 
     proc->fileTable.closeAll();
     {
@@ -406,7 +407,7 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                     long long t0 = getTime();
                     ssize_t result=fileTable.read(fd,ptr,size);
                     long long t1 = getTime();
-                    ioTimeNs += t1 - t0;
+                    ioReadTimeNs += t1 - t0;
                     sp.setParameter(0,result);
                 } else sp.setParameter(0,-EFAULT);
                 break;
@@ -422,7 +423,7 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                     long long t0 = getTime();
                     ssize_t result=fileTable.write(fd,ptr,size);
                     long long t1 = getTime();
-                    ioTimeNs += t1 - t0;
+                    ioWriteTimeNs += t1 - t0;
                     sp.setParameter(0,result);
                 } else sp.setParameter(0,-EFAULT);
                 break;
@@ -502,6 +503,14 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::IOCTL:
             {
+                // Horrible hack follows
+                int shouldDump = sp.getParameter(0);
+                if (shouldDump) {
+                    fiprintf(stderr, "Time spent in reads: %lld ns\n", ioReadTimeNs);
+                    fiprintf(stderr, "Time spent in writes: %lld ns\n", ioWriteTimeNs);
+                }
+                ioReadTimeNs=0;
+                ioWriteTimeNs=0;
                 //TODO: need a way to validate ARG, for now we reject it
                 //Not easy to move checks forward down filesystem code as that
                 //code can also be called through kercalls from kthreads
