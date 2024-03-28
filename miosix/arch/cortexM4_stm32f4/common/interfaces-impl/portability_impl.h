@@ -87,7 +87,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "   stmia  r0!, {r1,r4-r11,lr} \n"/*save r1(psp),r4-r11,lr */ \
                  "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
                  "   bmi    0f                  \n"                            \
-                 "   vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
+                 "   @vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
                  "0: dmb                        \n"                            \
                  );                                                            \
 }
@@ -105,7 +105,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "   ldmia  r0!, {r1,r4-r11,lr} \n"/*load r1(psp),r4-r11,lr */ \
                  "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
                  "   bmi    0f                  \n"                            \
-                 "   vldmia.32 r0, {s16-s31}    \n"/*restore s16-s31 if need*/ \
+                 "   @vldmia.32 r0, {s16-s31}    \n"/*restore s16-s31 if need*/ \
                  "0: msr    psp, r1             \n"/*restore PROCESS sp*/      \
                  "   bx     lr                  \n"/*return*/                  \
                  );                                                            \
