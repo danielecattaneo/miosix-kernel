@@ -12,7 +12,13 @@ ifeq ($(CONFPATH),)
     $(error Error)
 endif
 
+all:
+
 include $(CONFPATH)/config/Makefile.inc
+
+OBJ_DIR ?= obj
+BIN_MAP := $(OBJ_DIR)/$(notdir $(BIN)).map
+BIN_ELF := $(notdir $(BIN)).elf
 
 AFLAGS   ?= $(CPU)
 CFLAGS   ?= -MMD -MP $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall  \
@@ -20,22 +26,32 @@ CFLAGS   ?= -MMD -MP $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall  \
             $(INCLUDE_DIRS) -g -c
 CXXFLAGS ?= -std=c++14 $(PROC_OPT_EXCEPT) $(CFLAGS)
 LFLAGS   ?= $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections         \
-            -Wl,-Map,$(notdir $(BIN)).map,-T$(KPATH)/libsyscalls/process.ld    \
+            -Wl,-Map,$(BIN_MAP),-T$(KPATH)/libsyscalls/process.ld    \
             -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
 STDLIBS  := -lsyscalls -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS ?= $(LIBS) -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS)       \
              -Wl,--end-group
 
-OBJ ?= $(addsuffix .o, $(basename $(SRC)))
+OBJ ?= $(patsubst %, $(OBJ_DIR)/%, $(addsuffix .o, $(basename $(SRC))))
 
-%.o : %.cpp
+$(OBJ_DIR)/%.o : %.cpp $(OBJ_DIR)
 	$(ECHO) "[CXX ] $<"
 	$(Q)$(CXX) $(CXXFLAGS) $< -o $@
 
-%.o : %.c
+$(OBJ_DIR)/%.o : %.c $(OBJ_DIR)
 	$(ECHO) "[CC  ] $<"
 	$(Q)$(CC)  $(CFLAGS) $< -o $@
 
-%.o: %.s
+$(OBJ_DIR)/%.o: %.s $(OBJ_DIR)
 	$(ECHO) "[AS  ] $<"
 	$(Q)$(AS)  $(AFLAGS) $< -o $@
+
+.PHONY: $(OBJ_DIR)
+$(OBJ_DIR):
+	mkdir -p $(dir $(OBJ))
+
+.PHONY: objdir_clean
+objdir_clean:
+	rm -rf $(OBJ_DIR)
+
+clean: objdir_clean
