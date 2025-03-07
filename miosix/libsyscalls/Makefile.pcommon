@@ -29,7 +29,7 @@ LFLAGS   ?= $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections         \
             -Wl,-Map,$(BIN_MAP),-T$(KPATH)/libsyscalls/process.ld    \
             -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
 STDLIBS  := -lsyscalls -lstdc++ -lc -lm -lgcc -latomic
-LINK_LIBS ?= $(LIBS) -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS)       \
+LINK_LIBS ?= $(LIBS) -L$(OBJ_DIR) -Wl,--start-group $(STDLIBS)       \
              -Wl,--end-group
 
 OBJ ?= $(patsubst %, $(OBJ_DIR)/%, $(addsuffix .o, $(basename $(SRC))))

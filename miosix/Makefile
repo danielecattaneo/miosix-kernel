@@ -65,9 +65,9 @@ all: $(OBJ)
 	$(ECHO) "[PERL] Checking global objects"
 	$(Q)perl _tools/kernel_global_objects.pl $(OBJ)
 	$(ECHO) "[AR  ] libmiosix.a"
-	$(Q)$(AR) rcs libmiosix.a $(OBJ)
+	$(Q)$(AR) rcs $(OBJ_DIR)/libmiosix.a $(OBJ)
 
 clean:
-	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) libmiosix.a
+	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) $(OBJ_DIR)/libmiosix.a
 
 -include $(OBJ:.o=.d)

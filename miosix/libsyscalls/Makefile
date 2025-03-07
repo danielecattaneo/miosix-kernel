@@ -16,9 +16,9 @@ CXXFLAGS += -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC) -I$(KPATH)/$(ARCH_IN
 
 all: $(OBJ)
 	$(ECHO) "[AR  ] libsyscalls.a"
-	$(Q)$(AR) rcs libsyscalls.a $(OBJ)
+	$(Q)$(AR) rcs $(OBJ_DIR)/libsyscalls.a $(OBJ)
 
 clean:
-	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) libsyscalls.a
+	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) $(OBJ_DIR)/libsyscalls.a
 
 -include $(OBJ:.o=.d)
